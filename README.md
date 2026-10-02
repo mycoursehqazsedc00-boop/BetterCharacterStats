@@ -28,6 +28,11 @@ Everything else works exactly as in the original, from item tooltips, talent too
 | Facetted Crystal Scope (enchant 450) | Not counted; ranged crit stays 2% lower than in-game | Counted: +2% ranged crit, ranged slot only. Confirmed with the scope on the ranged slot, confirmed absent on other slots and with other enchants, and confirmed not to double up on repeated scans |
 | `RunScans` gear cost on every equip/unequip | Ran the full 19-slot tooltip scan (`ScanAllGear`) twice in a row for the same result | Runs once. `ScanAllGear` resets and rebuilds all gear stats from scratch, so the second call was pure repeated work |
 | Weapon skill on a freshly equipped or just-logged-in weapon | `GetItemTypeForSlot` uses the stock `GetItemInfo`, which returns nil on a cache miss and warms the cache silently in the background. An uncached weapon reads as no weapon at all, so weapon skill / crit cap fall back to Unarmed until something else (usually hovering the item) warms the cache | Falls back to ClassicAPI's `RequestLoadItemDataByID` on a cache miss and rescans automatically once `ITEM_DATA_LOAD_RESULT` fires. No change without ClassicAPI |
+| Ranged miss/hit chance calculations | `GetMissChanceRaw` always read the melee Hit Rating stat internally, even when the result was meant for ranged | Takes an optional `hitRating` parameter; melee call sites are unaffected (still default to melee Hit Rating) |
+
+### Weapon-skill hit-chance helpers (not currently shown on the panel)
+
+`BCS:GetWeaponSkillHitChance(wepSkill)`, `BCS:GetTotalHitChance(wepSkill, hitRating)`, and `BCS:GetTotalDualWieldHitChance(wepSkill, hitRating)` compute the weapon-skill-only and fully-combined chance to hit a boss, built on the corrected (ranged-aware) `GetMissChanceRaw`. They're available for future use but aren't wired into any visible stat slot — the panel's Melee and Ranged pages are unchanged from the original.
 
 ### How the enchant fix works
 

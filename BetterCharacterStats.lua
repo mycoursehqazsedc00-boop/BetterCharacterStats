@@ -497,12 +497,17 @@ function BCS:SetArmor(statFrame)
 	AddTooltip(statFrame)
 end
 
-function BCS:GetMissChanceRaw(wepSkill)
+-- hitRating is optional and defaults to the melee Hit Rating stat, so every
+-- existing call site (all melee) is unaffected. Ranged callers pass
+-- BCS:GetRangedHitRating() explicitly, since ranged has its own hit stat.
+function BCS:GetMissChanceRaw(wepSkill, hitRating)
+	hitRating = hitRating or BCS:GetHitRating()
+
 	local diff = wepSkill - 315
 	local miss = 5
 
 	if TURTLE_WOW_VERSION ~= nil then
-		miss = miss - (diff * 0.2) - BCS:GetHitRating()
+		miss = miss - (diff * 0.2) - hitRating
 	else
 		if diff < -10 then
 			miss = miss - diff * 0.2;
@@ -510,22 +515,50 @@ function BCS:GetMissChanceRaw(wepSkill)
 			miss = miss - diff * 0.1;
 		end
 
-		local hitChance = BCS:GetHitRating()
 		-- if skill diff < -10 then subtract one from +hit, if there is any +hit
-		if (diff < -10) and (hitChance > 0) then
-			hitChance = hitChance - 1
+		if (diff < -10) and (hitRating > 0) then
+			hitRating = hitRating - 1
 		end
-		miss = miss - hitChance
+		miss = miss - hitRating
 	end
 	return miss
 end
 
-function BCS:GetMissChance(wepSkill)
-	return max(0, min(BCS:GetMissChanceRaw(wepSkill), 60))
+function BCS:GetMissChance(wepSkill, hitRating)
+	return max(0, min(BCS:GetMissChanceRaw(wepSkill, hitRating), 60))
 end
 
-function BCS:GetDualWieldMissChance(wepSkill)
-	return max(0, min(BCS:GetMissChanceRaw(wepSkill) + 19, 60))
+function BCS:GetDualWieldMissChance(wepSkill, hitRating)
+	return max(0, min(BCS:GetMissChanceRaw(wepSkill, hitRating) + 19, 60))
+end
+
+-- The weapon-skill-only slice of hit chance, with no +Hit Rating folded in at
+-- all -- isolates what weapon skill alone is contributing.
+function BCS:GetWeaponSkillHitChance(wepSkill)
+	local diff = wepSkill - 315
+	local miss = 5
+
+	if TURTLE_WOW_VERSION ~= nil then
+		miss = miss - (diff * 0.2)
+	else
+		if diff < -10 then
+			miss = miss - diff * 0.2;
+		else
+			miss = miss - diff * 0.1;
+		end
+	end
+
+	return max(0, min(100 - miss, 100))
+end
+
+-- The fully combined chance to hit (weapon skill + Hit Rating together),
+-- i.e. the direct complement of GetMissChance/GetDualWieldMissChance.
+function BCS:GetTotalHitChance(wepSkill, hitRating)
+	return 100 - BCS:GetMissChance(wepSkill, hitRating)
+end
+
+function BCS:GetTotalDualWieldHitChance(wepSkill, hitRating)
+	return 100 - BCS:GetDualWieldMissChance(wepSkill, hitRating)
 end
 
 function BCS:GetGlanceChance(wepSkill)
