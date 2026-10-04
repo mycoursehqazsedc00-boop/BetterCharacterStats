@@ -210,7 +210,7 @@ BCS["L"] = {
 
 	-- melee
 	MELEE_HIT_TOOLTIP = [[|cffffffffMelee Hit|r]],
-	MELEE_HIT_TOOLTIP_SUB = [[Increases chance to hit with melee attacks.]],
+	MELEE_HIT_TOOLTIP_SUB = [[Your gear/talent Hit Rating plus weapon skill's bonus (+0.2% per point from 300 to 315).]],
 	MELEE_CRIT_TOOLTIP = [[|cffffffffMelee Crit|r]],
 	MELEE_CRIT_TOOLTIP_SUB = [[Your chance to land a critical strike with melee attacks.]],
 	MELEE_WEAPON_SKILL_TOOLTIP = [[|cffffffffMelee Weapon Skill|r]],
@@ -234,7 +234,7 @@ BCS["L"] = {
 	RANGED_CRIT_TOOLTIP = [[|cffffffffRanged Crit|r]],
 	RANGED_CRIT_TOOLTIP_SUB = [[Your chance to land a critical strike with ranged weapons.]],
 	RANGED_HIT_TOOLTIP = [[|cffffffffRanged Hit|r]],
-	RANGED_HIT_TOOLTIP_SUB = [[Increases chance to hit with ranged weapons.]],
+	RANGED_HIT_TOOLTIP_SUB = [[Your ranged Hit Rating plus ranged weapon skill's bonus (+0.2% per point from 300 to 315).]],
 
 	-- spells
 	SPELL_HIT_TOOLTIP = [[|cffffffffSpell Hit|r]],

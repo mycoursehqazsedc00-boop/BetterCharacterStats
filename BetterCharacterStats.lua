@@ -503,7 +503,9 @@ end
 function BCS:GetMissChanceRaw(wepSkill, hitRating)
 	hitRating = hitRating or BCS:GetHitRating()
 
-	local diff = wepSkill - 315
+	-- Weapon skill only matters up to a raid boss's own defense (315); more
+	-- than that gives no further miss reduction, so clamp it before diffing.
+	local diff = min(wepSkill, 315) - 315
 	local miss = 5
 
 	if TURTLE_WOW_VERSION ~= nil then
@@ -535,7 +537,8 @@ end
 -- The weapon-skill-only slice of hit chance, with no +Hit Rating folded in at
 -- all -- isolates what weapon skill alone is contributing.
 function BCS:GetWeaponSkillHitChance(wepSkill)
-	local diff = wepSkill - 315
+	-- Same 315 clamp as GetMissChanceRaw -- see the comment there.
+	local diff = min(wepSkill, 315) - 315
 	local miss = 5
 
 	if TURTLE_WOW_VERSION ~= nil then
@@ -549,6 +552,16 @@ function BCS:GetWeaponSkillHitChance(wepSkill)
 	end
 
 	return max(0, min(100 - miss, 100))
+end
+
+-- Weapon skill's hit bonus as a simple additive number, with 300 (the
+-- baseline weapon skill for a trained max-level weapon) as the zero point:
+-- every point of skill from 300 to 315 is worth +0.2% hit. This is meant to
+-- be added directly to the raw gear/talent Hit Rating stat, e.g. "7% gear +
+-- 1% from skill 305 = 8% total" -- not a real chance-to-hit probability by
+-- itself (that's GetTotalHitChance below).
+function BCS:GetWeaponSkillHitBonus(wepSkill)
+	return max(0, min(wepSkill, 315) - 300) * 0.2
 end
 
 -- The fully combined chance to hit (weapon skill + Hit Rating together),
@@ -567,7 +580,9 @@ end
 
 function BCS:GetGlanceReduction(wepSkill)
 	if TURTLE_WOW_VERSION ~= nil then
-		return 65 + (wepSkill - 300) * 2
+		-- Same reasoning as the miss-chance clamp: skill beyond 315 (a raid
+		-- boss's own defense) gives no further benefit.
+		return 65 + (min(wepSkill, 315) - 300) * 2
 	else
 		local diff = 315 - wepSkill;
 		local low = math.max(math.min(1.3 - 0.05 * diff, 0.91), 0.01);
@@ -723,7 +738,9 @@ function BCS:SetHitRating(statFrame, ratingType)
 	label:SetText(L.MELEE_HIT_RATING_COLON)
 
 	if ratingType == "MELEE" then
-		text:SetText(BCS:GetHitRating().."%")
+		-- Raw gear/talent Hit Rating plus weapon skill's additive bonus
+		-- (main-hand weapon skill only), e.g. 7% gear + 1% from skill = 8%.
+		text:SetText(format("%.1f%%", BCS:GetHitRating() + BCS:GetWeaponSkillHitBonus(BCS:GetMHWeaponSkill())))
 
 		statFrame.tooltip = L.MELEE_HIT_TOOLTIP
 		statFrame.tooltipSubtext = L.MELEE_HIT_TOOLTIP_SUB
@@ -736,7 +753,9 @@ function BCS:SetHitRating(statFrame, ratingType)
 			return
 		end
 
-		text:SetText(BCS:GetRangedHitRating().."%")
+		-- Raw ranged Hit Rating plus ranged weapon skill's additive bonus,
+		-- e.g. 7% gear + 1% from skill 305 = 8%.
+		text:SetText(format("%.1f%%", BCS:GetRangedHitRating() + BCS:GetWeaponSkillHitBonus(BCS:GetRangedWeaponSkill())))
 
 		statFrame.tooltip = L.RANGED_HIT_TOOLTIP
 		statFrame.tooltipSubtext = L.RANGED_HIT_TOOLTIP_SUB

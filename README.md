@@ -30,9 +30,11 @@ Everything else works exactly as in the original, from item tooltips, talent too
 | Weapon skill on a freshly equipped or just-logged-in weapon | `GetItemTypeForSlot` uses the stock `GetItemInfo`, which returns nil on a cache miss and warms the cache silently in the background. An uncached weapon reads as no weapon at all, so weapon skill / crit cap fall back to Unarmed until something else (usually hovering the item) warms the cache | Falls back to ClassicAPI's `RequestLoadItemDataByID` on a cache miss and rescans automatically once `ITEM_DATA_LOAD_RESULT` fires. No change without ClassicAPI |
 | Ranged miss/hit chance calculations | `GetMissChanceRaw` always read the melee Hit Rating stat internally, even when the result was meant for ranged | Takes an optional `hitRating` parameter; melee call sites are unaffected (still default to melee Hit Rating) |
 
-### Weapon-skill hit-chance helpers (not currently shown on the panel)
+### Hit Rating now includes weapon skill's bonus
 
-`BCS:GetWeaponSkillHitChance(wepSkill)`, `BCS:GetTotalHitChance(wepSkill, hitRating)`, and `BCS:GetTotalDualWieldHitChance(wepSkill, hitRating)` compute the weapon-skill-only and fully-combined chance to hit a boss, built on the corrected (ranged-aware) `GetMissChanceRaw`. They're available for future use but aren't wired into any visible stat slot — the panel's Melee and Ranged pages are unchanged from the original.
+The "Hit Rating" stat on the Melee Combat and Ranged Combat pages (same slot, same label as the original) now adds weapon skill's hit bonus on top of the raw gear/talent rating: `BCS:GetWeaponSkillHitBonus(wepSkill)` gives +0.2% per point of skill from 300 (the baseline for a trained max-level weapon) up to the 315 cap, e.g. skill 305 = +1%. So 7% gear + skill 305 shows as 8%, not a hit-chance probability. Melee uses main-hand weapon skill only (no dual-wield split, to keep this a single number like the original).
+
+A separate, real chance-to-hit-a-boss probability is also available via `GetTotalHitChance`/`GetTotalDualWieldHitChance` (built on the corrected, ranged-aware `GetMissChanceRaw`), for anyone who wants that number instead -- it just isn't wired into the panel.
 
 ### How the enchant fix works
 
