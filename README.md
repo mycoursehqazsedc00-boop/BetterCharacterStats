@@ -54,6 +54,26 @@ To add another enchant, add a line to this table with its enchant ID and the sta
 
 Melee crit does not use this table. It's read from your spellbook tooltips, not from gear, so it's unaffected by anything added here.
 
+## Item-tooltip scanning for other addons (BCSItemScan)
+
+`BetterCharacterStats-itemscan.lua` ports [BonusScanner](https://www.curseforge.com/wow/addons/bonus-scanner)'s generic, any-tooltip stat-text parser into this addon, under the name `BCSItemScan`. This exists so other addons that need to read an arbitrary item tooltip's stats (originally [VanillaRatingBuster](https://github.com/ZephZae/VanillaRatingBuster)) can depend on `BetterCharacterStats` instead of a separate BonusScanner addon.
+
+- `BCSItemScan:ScanLine(line)` — parses one tooltip line into `BCSItemScan.temp.bonuses` (reset `.temp.sets`, `.temp.set`, `.temp.slot`, `.temp.bonuses`, `.temp.details` before each item).
+- `BCSItemScan.bonuses` — a running total of the player's own equipped gear, refreshed automatically on `UNIT_INVENTORY_CHANGED` (debounced, matching this addon's own gear-scan pattern) and once on login. Used by threshold-based weight tables (e.g. "if my current hit rating is below the cap, weight hit heavily; once capped, weight it at zero").
+- `BCSItemScan:ScanItem(itemlink)` — scans one arbitrary item link directly (vendor, mail, etc.) without touching `.bonuses`.
+
+The parsing engine (patterns, token matching, `AddValue` bookkeeping) is kept line-for-line identical to BonusScanner's, including its vanilla-Lua-5.0-specific `for i,e in sometable do` loops (valid and working in-game; a modern Lua 5.1+ test harness needs `pairs()` added to run it, which is exactly why this was tested with a separate shimmed copy rather than the shipped file). Verified byte-for-byte identical output against the original engine across 7 test items covering generic stats, passive percentages, composite school+type patterns, list-expansion effects (All Stats/All Resistances), set bonuses, and weapon oils.
+
+Uses its own hidden tooltip (`BCSItemScanTooltip`), kept separate from this addon's own `BCS_Tooltip` (used internally by `ScanAllGear`), so the two scans can never interfere with each other's in-progress state.
+
+### VanillaRatingBuster changes
+
+Beyond the dependency swap (`BonusScanner` → `BCSItemScan`, `.toc` `Dependencies` line updated), two real bugs were found and fixed while porting:
+
+- **`scoredItemTypes` never matched anything.** It compared `GetItemInfo`'s raw, language-independent `equipLoc` (e.g. `"INVTYPE_HEAD"`) against unquoted Blizzard globals like `INVTYPE_HEAD`, which actually evaluate to the *localized display label* (`"Head"`) — never the raw enum. The dead `VRBCheckItemType` function (defined but never called) would have rejected every single item once wired up. Fixed by matching the raw enum directly as quoted strings, which also fixed a second gap: `INVTYPE_RANGEDRIGHT` (Wands, Guns, and Crossbows on pre-2.4.3 clients like this one) was missing entirely — only `INVTYPE_RANGED` (Bows) was present.
+- **An off-by-one in `GetItemInfo` unpacking** meant `equipLoc` was reading item stack count instead of equip location (the same mistake, caught and fixed, as an earlier one in BetterCharacterPanel's `GetSlotScore`).
+- The dead `VRBCheckItemType`/`scoredItemTypes` filter is now actually wired up via `GameTooltip:GetItem()`, so only real equipment shows a rating — a food buff or quest item with coincidentally stat-like text no longer gets a score. `GameTooltip:GetItem` is one of the functions ClassicAPI backports into 1.12 (not confirmed native), so this is guarded and falls back to the original always-show-a-score behavior if it's unavailable.
+
 ## Installation
 
 1. Download this repository as a zip.
